@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using SocketIO;
 
 public class GameController : MonoBehaviour {
     public Text questionText;
@@ -11,6 +12,7 @@ public class GameController : MonoBehaviour {
     public Text timeText;
     public GameObject questionDisplay;
     public GameObject endGameDisplay;
+    public InputField initialsInputField;
 
     private int playerScore = 0;
     private float timeRemaining;
@@ -100,6 +102,18 @@ public class GameController : MonoBehaviour {
         {
             currentRound++;
             BeginRound();
+        }
+    }
+
+    public void SendScoreInfo()
+    {
+        ScoreData playerScoreData = new ScoreData(initialsInputField.text, playerScore);
+        GameObject serverObject = GameObject.Find("Server");
+        if (serverObject)
+        {
+            string jsonObj = JsonUtility.ToJson(playerScoreData);
+            SocketIOComponent socket = serverObject.GetComponent<SocketIOComponent>();
+            socket.Emit("send score data", new JSONObject(jsonObj));
         }
     }
 

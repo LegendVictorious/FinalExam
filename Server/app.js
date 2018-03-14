@@ -37,6 +37,13 @@ io.on('connection', function (socket) {
 			});
 		});
 
+		socket.on('send score data', function (data) {
+			dbObj.collection("ScoreData").save(data, function (err, result) {
+				if (err) throw err;
+				console.log("Score data saved");
+			});
+		});
+
 		socket.on('retrieve data', function (data) {
 			dbObj.collection("RoundData").findOne({}, function (err, result) {
 				if (err) throw err;
@@ -45,6 +52,19 @@ io.on('connection', function (socket) {
 						return console.log(err);
 					}				
 					console.log("The file was saved!");
+				});
+			});
+		});
+
+		socket.on('retrieve score data', function (data) {
+			dbObj.collection("ScoreData").findOne({}, function (err, result) {
+				if (err) throw err;
+				fs.writeFile(data.wrappedString, JSON.stringify(result), function(err) {
+					if(err) {
+						return console.log(err);
+					}				
+					console.log("The score data was saved!");
+					socket.broadcast.emit("score data retrieved");
 				});
 			});
 		});
