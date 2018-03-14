@@ -1,0 +1,27 @@
+<% include header %>
+<% if(roundData.roundDataArray.length){ %>
+	<% roundData.roundDataArray.forEach(function(round){ %>
+	<div class="panel panel-default">
+		<div class="panel-body">
+			Name: <%= round.name %>	<br/>
+			Time limit: <%= round.timeLimitInSeconds %> <br/>
+			Points: <%= round.points %> <br/>
+
+			<% if(round.questions.length){ %>
+				<% round.questions.forEach(function(question) { %>
+					<br/> Question: <%= question.questionText %> <br/>
+					<% if(question.answers.length){ %>
+						<% question.answers.forEach(function(answer) { %>
+							Answer: <%= answer.answerText %> <br/>
+							IsCorrect: <%= answer.isCorrect %> <br/>
+						<% }) %>
+					<% } %>
+				<% }) %>
+			<% } %>
+		</div>
+	</div>
+	<% }) %>
+	<% } else { %>
+	No entries! <a href="/new-entry">Add a game?</a>
+	<% } %>
+<% include footer %>
