@@ -1,0 +1,16 @@
+<% include header %>
+
+<h2>High Scores</h2>
+
+<% if(allScoreData.length){ %>
+	<% allScoreData.forEach(function(scoreData){ %>
+		<div class="panel panel-default">
+			<div class="panel-body">
+				Player: <%= scoreData.playerInitials %> <br/>
+				Score: <%= scoreData.playerScore %>
+			</div>
+		</div>
+	<% }) %>
+<% } %>
+
+<% include footer %>

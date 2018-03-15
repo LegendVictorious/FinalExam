@@ -57,14 +57,14 @@ io.on('connection', function (socket) {
 		});
 
 		socket.on('retrieve score data', function (data) {
-			dbObj.collection("ScoreData").findOne({}, function (err, result) {
+			dbObj.collection("ScoreData").find({}).toArray(function(err, result){
 				if (err) throw err;
-				fs.writeFile(data.wrappedString, JSON.stringify(result), function(err) {
+				result = "{ \"scoreDataArray\":" + JSON.stringify(result) + "}";
+				fs.writeFile(data.wrappedString, result, function(err) {
 					if(err) {
 						return console.log(err);
 					}				
 					console.log("The score data was saved!");
-					socket.broadcast.emit("score data retrieved");
 				});
 			});
 		});
@@ -147,37 +147,33 @@ app.get("/", ensureAuthenticated, function(request,response){
 			console.log("Site Served");
 			db.close();
 			response.render("index", {roundData:results});
-		});
-		
-	});
-	
+		});		
+	});	
 });
 
-app.get("/new-entry",ensureAuthenticated, function(request,response){
-	response.render("new-entry");
+function CompareScores(score1, score2){
+	if (score1.playerScore < score2.playerScore)
+    return 1;
+  	if (score1.playerScore > score2.playerScore)
+    return -1;
+  return 0;
+}
+
+app.get("/high-scores",ensureAuthenticated, function(request,response){
+	MongoClient.connect(url, function(err,db){
+		if(err)throw err;
+		var dbObj= db.db("quizgame");
+		
+		dbObj.collection("ScoreData").find({}).toArray(function(err, results){
+			db.close();
+			results.sort(CompareScores);
+			response.render("high-scores", {allScoreData:results});
+		});		
+	});
 });
 
 app.get("/sign-in", function(request,response){
 	response.render("sign-in");
-});
-
-app.post("/new-entry", function(request,response){
-	if(!request.body.title||!request.body.body){
-		response.status(400).send("Entries must have some text!");
-		return;
-	}
-	//connected to our database and saved the games
-	MongoClient.connect(url, function(err, db){
-		if(err)throw err;
-		
-		var dbObj = db.db("quizgame");
-		
-		dbObj.collection("RoundData").save(request.body, function(err, result){
-			console.log("data saved");
-			response.redirect("/");
-		});
-		
-	});
 });
 
 app.post("/sign-up", function(request,response){

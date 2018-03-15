@@ -4,49 +4,79 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using SocketIO;
 using System.IO;
+using UnityEngine.UI;
 
 public class MenuController : MonoBehaviour {
-    string scoreDataFilePath = "/StreamingAssets/scoreData.json";
-    private RoundData[] allRoundDataArray;
+    private string scoreDataFilePath = "/StreamingAssets/scoreData.json";
     public SocketIOComponent socket;
+    private bool hasConnected = false;
     private bool hasEmitted = false;
-    string filePath;
+    private bool hasLoadedScores = false;
+    private string filePath;
+    private ScoreData[] scoreDataArray;
 
-    void Start()
-    {
-        filePath = Application.dataPath + scoreDataFilePath;
-        socket.On("open", OnConnected);
-        socket.On("score data retrieved", OnScoreDataRetrieved);
-    }
-
-    // Use this for initialization
-    public void StartGame () {
-        SceneManager.LoadScene("Game");
-	}
+    public GameObject mainMenuPanel;
+    public GameObject highScorePanel;
+    public Text highScoreText;
 
     public struct StringWrapper { public string wrappedString; }
-    void OnConnected(SocketIOEvent e)
+    public struct ScoreDataArrayWrapper { public ScoreData[] scoreDataArray; }
+
+    void Start()
+    {       
+        socket.On("open", OnConnected);
+    }
+
+    void Update()
     {
-        if (!hasEmitted)
+        if (hasConnected && (hasEmitted == false))
         {
-            DoConnectionTasks();
+            filePath = Application.dataPath + scoreDataFilePath;
+            StringWrapper wrappedPath = new StringWrapper();
+            wrappedPath.wrappedString = filePath;
+            string jsonObj = JsonUtility.ToJson(wrappedPath);
+            System.Threading.Thread.Sleep(1000);
+            socket.Emit("retrieve score data", new JSONObject(jsonObj));
+            hasEmitted = true;
         }
     }
 
-    void DoConnectionTasks()
+    void OnConnected(SocketIOEvent e)
     {
-        
-        StringWrapper wrappedPath = new StringWrapper();
-        wrappedPath.wrappedString = filePath;
-        string jsonObj = JsonUtility.ToJson(wrappedPath);
-        socket.Emit("retrieve score data", new JSONObject(jsonObj));
-        hasEmitted = true;
+        hasConnected = true;
     }
 
-    void OnScoreDataRetrieved(SocketIOEvent e)
+    // Buttons
+    public void StartGame () {
+        SceneManager.LoadScene("Game");
+	}  
+    
+    public void DisplayScoreScreen()
     {
-        //LoadScoreDataFromFile();
+        mainMenuPanel.SetActive(false);
+        highScorePanel.SetActive(true);
+        if (!hasLoadedScores)
+        {
+            LoadScoreDataFromFile();
+        }
+        DisplayScoreArray();
     }
+    
+    void DisplayScoreArray()
+    {
+        highScoreText.text = "";
+        for (int i = 0; (i < 10) && (i < scoreDataArray.Length); i++)
+        {
+            highScoreText.text += scoreDataArray[i].playerInitials + " " + scoreDataArray[i].playerScore + "\n";
+        }
+    } 
+
+    public void DisplayMainMenu()
+    {
+        highScorePanel.SetActive(false);
+        mainMenuPanel.SetActive(true);
+    }    
+
 
     void LoadScoreDataFromFile()
     {
@@ -55,8 +85,11 @@ public class MenuController : MonoBehaviour {
         if (File.Exists(filePath))
         {
             string data = File.ReadAllText(filePath);
-            AllRoundData allRoundData = JsonUtility.FromJson<AllRoundData>(data);
-            allRoundDataArray = allRoundData.roundDataArray;
+            ScoreDataArrayWrapper scoreDataWrapper = JsonUtility.FromJson<ScoreDataArrayWrapper>(data);
+            scoreDataArray = scoreDataWrapper.scoreDataArray;
+            System.Array.Sort(scoreDataArray, delegate (ScoreData score1, ScoreData score2) {
+                return -score1.playerScore.CompareTo(score2.playerScore);
+            });
         }
     }
 }
